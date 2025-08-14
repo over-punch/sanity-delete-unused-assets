@@ -109,6 +109,38 @@ export const DeleteUnusedAssets: React.FC<DeleteUnusedAssetsProps> = ({
   }, [olderThan])
 
   /**
+   * Get filtered assets based on current filters
+   */
+  const getFilteredAssets = useCallback(() => {
+    let filtered = unusedAssets
+
+    // Type filter
+    if (filterType !== 'all') {
+      filtered = filtered.filter(asset => 
+        filterType === 'image' 
+          ? asset._type === 'sanity.imageAsset'
+          : asset._type === 'sanity.fileAsset'
+      )
+    }
+
+    // Size filter
+    if (filterSize) {
+      const sizeBytes = parseFloat(filterSize) * 1024 * 1024 // Convert MB to bytes
+      filtered = filtered.filter(asset => (asset.size || 0) > sizeBytes)
+    }
+
+    // Age filter
+    if (filterAge) {
+      const daysAgo = parseInt(filterAge)
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - daysAgo)
+      filtered = filtered.filter(asset => new Date(asset._createdAt) < cutoffDate)
+    }
+
+    return filtered
+  }, [unusedAssets, filterType, filterSize, filterAge])
+
+  /**
    * Scan for unused assets
    */
   const scanForUnusedAssets = useCallback(async () => {
@@ -117,9 +149,9 @@ export const DeleteUnusedAssets: React.FC<DeleteUnusedAssetsProps> = ({
     setScanProgress(0)
     
     try {
-      // Build asset type filter
+      // Build asset type filter - FIXED SYNTAX ERROR
       const typeFilter = assetTypes.includes('image') && assetTypes.includes('file')
-        ? `_type in ["sanity.imageAsset", "sanity.fileAsset"]"
+        ? `_type in ["sanity.imageAsset", "sanity.fileAsset"]`
         : assetTypes.includes('image')
         ? `_type == "sanity.imageAsset"`
         : `_type == "sanity.fileAsset"`
@@ -223,7 +255,7 @@ export const DeleteUnusedAssets: React.FC<DeleteUnusedAssetsProps> = ({
     const filtered = getFilteredAssets()
     const allIds = new Set(filtered.map(asset => asset._id))
     setSelectedAssets(allIds)
-  }, [unusedAssets, filterType, filterSize, filterAge])
+  }, [getFilteredAssets])
 
   /**
    * Clear selection
@@ -231,38 +263,6 @@ export const DeleteUnusedAssets: React.FC<DeleteUnusedAssetsProps> = ({
   const clearSelection = useCallback(() => {
     setSelectedAssets(new Set())
   }, [])
-
-  /**
-   * Get filtered assets based on current filters
-   */
-  const getFilteredAssets = useCallback(() => {
-    let filtered = unusedAssets
-
-    // Type filter
-    if (filterType !== 'all') {
-      filtered = filtered.filter(asset => 
-        filterType === 'image' 
-          ? asset._type === 'sanity.imageAsset'
-          : asset._type === 'sanity.fileAsset'
-      )
-    }
-
-    // Size filter
-    if (filterSize) {
-      const sizeBytes = parseFloat(filterSize) * 1024 * 1024 // Convert MB to bytes
-      filtered = filtered.filter(asset => (asset.size || 0) > sizeBytes)
-    }
-
-    // Age filter
-    if (filterAge) {
-      const daysAgo = parseInt(filterAge)
-      const cutoffDate = new Date()
-      cutoffDate.setDate(cutoffDate.getDate() - daysAgo)
-      filtered = filtered.filter(asset => new Date(asset._createdAt) < cutoffDate)
-    }
-
-    return filtered
-  }, [unusedAssets, filterType, filterSize, filterAge])
 
   /**
    * Execute deletion
