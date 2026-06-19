@@ -1,30 +1,56 @@
 # Sanity Delete Unused Assets
 
-A comprehensive asset cleanup utility for Sanity Studio that identifies and removes unused assets to optimize storage and improve performance. Features advanced scanning, filtering, and safety mechanisms.
+[![npm version](https://img.shields.io/npm/v/@liiift-studio/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-delete-unused-assets)
+[![license](https://img.shields.io/npm/l/@liiift-studio/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-delete-unused-assets)
+[![Sanity Studio v3+](https://img.shields.io/badge/Sanity%20Studio-v3%20%7C%20v4%20%7C%20v5-f03e2f.svg)](https://www.sanity.io/)
+
+An asset cleanup utility component for Sanity Studio that identifies and permanently removes **unused** assets (images and files no longer referenced by any document) to reclaim storage. It also reports total storage usage and finds duplicate filenames. Built with `@sanity/ui`.
+
+> ⚠️ **This tool deletes data permanently.** Deleting a Sanity asset is **irreversible** from the Studio. Read the [Safety & irreversibility](#safety--irreversibility) section before running it against a real dataset.
+
+## How it works
+
+The component runs a single GROQ query for every image/file asset, counts how many documents reference each one, and treats any asset with **zero references** as unused. With `dryRun` it only reports; otherwise it deletes the unused assets in a transaction.
+
+<p align="center">
+  <img
+    src="https://raw.githubusercontent.com/Liiift-Studio/sanity-delete-unused-assets/main/assets/data-flow.svg?v=1"
+    alt="Data flow: scan every Sanity image/file asset, count references, flag the zero-reference (unused) assets, apply filters, and — only when dryRun is off — permanently delete them via a batched transaction; otherwise report what would be deleted."
+    width="420"
+  />
+</p>
+
+<!-- PNG fallback (some registry renderers don't display SVG):
+  https://raw.githubusercontent.com/Liiift-Studio/sanity-delete-unused-assets/main/assets/data-flow.png?v=1 -->
+
+1. **Asset inventory** — scans all `sanity.imageAsset` and `sanity.fileAsset` documents in your dataset.
+2. **Reference analysis** — for each asset, counts referencing documents with `count(*[references(^._id)])`.
+3. **Usage detection** — any asset with `refs == 0` is flagged as unused.
+4. **Filter application** — applies your `assetTypes`, `olderThan`, `excludePatterns`, and `maxAssets` options.
+5. **Deletion** — when not in `dryRun`, deletes the flagged assets in a batched transaction and reports what was removed.
 
 ## Features
 
-- 🔍 **Smart Asset Scanning**: Automatically detects unused images, videos, and files
-- 📊 **Storage Analysis**: Shows file sizes, storage savings, and detailed metrics
-- 🎯 **Advanced Filtering**: Filter by file type, size, age, and custom patterns
-- 🛡️ **Safety First**: Dry-run mode, confirmation dialogs, and exclude patterns
-- 📈 **Progress Tracking**: Real-time scanning progress with detailed feedback
-- 🔄 **Batch Processing**: Handles large asset collections efficiently
-- 📱 **Responsive UI**: Seamless integration with Sanity Studio
+- 🔍 **Asset scanning** — detects unused image and file assets by reference count
+- 📊 **Storage analysis** — reports file sizes and total/per-type storage usage
+- 🧬 **Duplicate detection** — groups assets that share the same original filename
+- 🎯 **Filtering** — narrow the scan by asset type, age, exclude patterns, and a max count
+- 🛡️ **Safety controls** — `dryRun` preview, `excludePatterns`, and batch processing
+- 📱 **Sanity UI** — built with `@sanity/ui`, fits naturally inside a Studio tool or pane
 
 ## Installation
 
 ```bash
-npm install sanity-delete-unused-assets
+npm install @liiift-studio/sanity-delete-unused-assets
 ```
 
 ## Quick Start
 
-### Basic Usage
+The package's default export is a React component. Render it inside a Studio tool/pane and hand it a Sanity client:
 
 ```tsx
 import React from 'react'
-import { DeleteUnusedAssets } from 'sanity-delete-unused-assets'
+import { DeleteUnusedAssets } from '@liiift-studio/sanity-delete-unused-assets'
 import { useClient } from 'sanity'
 
 const AssetCleanup = () => {
@@ -33,39 +59,49 @@ const AssetCleanup = () => {
   return (
     <DeleteUnusedAssets
       client={client}
+      dryRun // preview first — strongly recommended
       onComplete={(results) => {
-        console.log(`Cleaned up ${results.deleted} assets, saved ${results.spaceSaved} MB`)
+        console.log(`Cleaned up ${results.deleted} assets, freed ${results.savedSpace} bytes`)
       }}
     />
   )
 }
 ```
 
-### As a Sanity Studio Tool
+> The component is also available as the package's **default** export, so
+> `import DeleteUnusedAssets from '@liiift-studio/sanity-delete-unused-assets'` works too.
+
+This package ships a component, not a Studio plugin — there is no auto-registering
+tool. Mount the component yourself, for example as a custom tool in `sanity.config.ts`:
 
 ```tsx
-// sanity.config.ts
-import { defineConfig } from 'sanity'
-import { DeleteUnusedAssetsTool } from 'sanity-delete-unused-assets'
+import { defineConfig, useClient } from 'sanity'
+import { DeleteUnusedAssets } from '@liiift-studio/sanity-delete-unused-assets'
+
+const AssetCleanupTool = () => {
+  const client = useClient({ apiVersion: '2023-01-01' })
+  return <DeleteUnusedAssets client={client} dryRun />
+}
 
 export default defineConfig({
-  // ... other config
-  tools: [
-    DeleteUnusedAssetsTool()
-  ]
+  // ...
+  tools: (prev) => [
+    ...prev,
+    { name: 'asset-cleanup', title: 'Asset Cleanup', component: AssetCleanupTool },
+  ],
 })
 ```
 
-### With Custom Filters
+### With filters
 
 ```tsx
 <DeleteUnusedAssets
   client={client}
-  fileTypes={['image/jpeg', 'image/png']}
-  minFileSize={1024} // 1KB minimum
-  maxFileSize={10485760} // 10MB maximum
-  olderThanDays={30}
-  excludePatterns={['hero-*', 'logo-*']}
+  assetTypes={['image']}                 // only image assets
+  olderThan={new Date('2024-01-01')}      // only assets created before this date
+  excludePatterns={['hero-', 'logo-']}    // skip filenames containing these
+  maxAssets={50}                          // never act on more than 50 at once
+  dryRun                                  // preview the result without deleting
 />
 ```
 
@@ -73,186 +109,88 @@ export default defineConfig({
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `client` | `SanityClient` | **required** | Sanity client instance |
-| `fileTypes` | `string[]` | `[]` | Specific MIME types to scan (empty = all types) |
-| `minFileSize` | `number` | `0` | Minimum file size in bytes |
-| `maxFileSize` | `number` | `Infinity` | Maximum file size in bytes |
-| `olderThanDays` | `number` | `0` | Only scan assets older than X days |
-| `excludePatterns` | `string[]` | `[]` | Filename patterns to exclude from deletion |
-| `onComplete` | `function` | `undefined` | Callback when cleanup completes |
-| `onError` | `function` | `undefined` | Error handling callback |
-| `batchSize` | `number` | `10` | Number of assets to process per batch |
-| `dryRun` | `boolean` | `false` | Preview mode without actual deletion |
+| `client` | `SanityClient` | **required** | Sanity client instance (must have delete permissions to actually remove assets) |
+| `assetTypes` | `('image' \| 'file')[]` | `['image', 'file']` | Which asset kinds to scan |
+| `olderThan` | `Date` | `undefined` | Only consider assets created before this date |
+| `excludePatterns` | `string[]` | `[]` | Filename substrings to exclude from deletion |
+| `maxAssets` | `number` | `undefined` | Cap on how many assets a single run will act on |
+| `batchSize` | `number` | `10` | Number of assets processed per batch |
+| `dryRun` | `boolean` | `false` | Preview mode — reports what *would* be deleted without deleting |
+| `onComplete` | `(results: { deleted: number; savedSpace: number; errors: string[] }) => void` | `undefined` | Called when a run finishes |
+| `onError` | `(error: string) => void` | `undefined` | Called on a top-level failure |
 
-## Usage Examples
+## Safety & irreversibility
 
-### 1. Basic Asset Cleanup
+**Deleting a Sanity asset is permanent.** There is no Studio-level undo. Treat every non-`dryRun` run as destructive and follow these practices:
 
-```tsx
-import { DeleteUnusedAssets } from 'sanity-delete-unused-assets'
+- **Always run with `dryRun` first** and review the reported list before deleting for real.
+- **Export a dataset backup** before a real deletion: `sanity dataset export <dataset> backup.tar.gz`.
+- **`references()` only sees published references.** An asset referenced **only by a draft document** (or via a path/custom resolver that `references()` does not traverse) can be counted as unused. Such assets may be deleted even though a draft still points at them.
+- **Freshly uploaded but not-yet-saved assets** have no references and will be flagged as unused — finish your edits before cleaning up.
+- **Scope your client.** The `client` you pass controls which dataset is affected and whether deletion is even permitted. A read-only token cannot delete (Sanity returns *Insufficient permissions* — pass a write token, e.g. via `--with-user-token` when scripting).
+- Use `excludePatterns` and `maxAssets` to limit blast radius on large or unfamiliar datasets.
 
-const BasicCleanup = () => {
-  const client = useClient({ apiVersion: '2023-01-01' })
-
-  return (
-    <DeleteUnusedAssets
-      client={client}
-      onComplete={(results) => {
-        console.log(`Cleanup complete:`, {
-          deleted: results.deleted,
-          spaceSaved: `${results.spaceSaved} MB`,
-          errors: results.errors.length
-        })
-      }}
-    />
-  )
-}
-```
-
-### 2. Image-Only Cleanup with Size Limits
+### Dry run
 
 ```tsx
-<DeleteUnusedAssets
-  client={client}
-  fileTypes={['image/jpeg', 'image/png', 'image/webp']}
-  minFileSize={1024} // Skip tiny files
-  maxFileSize={5242880} // Skip files larger than 5MB
-  onComplete={(results) => {
-    console.log(`Cleaned ${results.deleted} images`)
-  }}
-/>
+<DeleteUnusedAssets client={client} dryRun />
 ```
 
-### 3. Safe Mode with Exclusions
+Preview what would be deleted, validate filters and exclude patterns, and sanity-check storage savings — all without touching your data.
 
-```tsx
-<DeleteUnusedAssets
-  client={client}
-  dryRun={true}
-  excludePatterns={[
-    'hero-*',
-    'logo-*', 
-    'favicon*',
-    '*-backup'
-  ]}
-  onComplete={(results) => {
-    console.log(`Would delete ${results.deleted} assets (${results.spaceSaved} MB)`)
-  }}
-/>
-```
+### Exclude patterns
 
-### 4. Old Asset Cleanup
-
-```tsx
-<DeleteUnusedAssets
-  client={client}
-  olderThanDays={90} // Only assets older than 3 months
-  onComplete={(results) => {
-    console.log(`Cleaned up old assets: ${results.deleted} files`)
-  }}
-/>
-```
-
-## Asset Detection
-
-### How It Works
-
-The utility performs a comprehensive scan to identify unused assets:
-
-1. **Asset Inventory**: Scans all assets in your Sanity dataset
-2. **Reference Analysis**: Checks all documents for asset references
-3. **Usage Detection**: Identifies assets not referenced by any document
-4. **Filter Application**: Applies your specified filters (type, size, age, etc.)
-5. **Safe Deletion**: Removes only confirmed unused assets
-
-### Supported Asset Types
-
-- **Images**: JPEG, PNG, WebP, GIF, SVG
-- **Videos**: MP4, WebM, MOV
-- **Documents**: PDF, DOC, DOCX
-- **Audio**: MP3, WAV, OGG
-- **Archives**: ZIP, RAR
-- **Custom**: Any MIME type
-
-## Safety Features
-
-### Dry Run Mode
-```tsx
-<DeleteUnusedAssets client={client} dryRun={true} />
-```
-- Preview what would be deleted without making changes
-- Test filters and exclusion patterns safely
-- Validate storage savings estimates
-
-### Exclude Patterns
 ```tsx
 excludePatterns={[
-  'hero-*',      // Exclude hero images
-  'logo-*',      // Exclude logos
-  '*-backup',    // Exclude backup files
-  'temp/*'       // Exclude temp folder
+  'hero-',   // skip hero images
+  'logo-',   // skip logos
+  'backup',  // skip anything with "backup" in the filename
 ]}
 ```
 
-### Confirmation Dialogs
-- All delete operations require explicit confirmation
-- Clear warnings for destructive actions
-- Detailed summary before deletion
+### Batch processing
 
-### Batch Processing
-- Large cleanup operations are processed in batches
-- Prevents timeout issues with large asset collections
-- Progress feedback during long operations
+Large cleanups are processed in batches (`batchSize`, default `10`) to avoid transaction timeouts on big asset collections.
 
-## Storage Analysis
+## Storage analysis
 
-The component provides detailed storage metrics:
+The component surfaces storage metrics alongside cleanup:
 
-- **Total Assets**: Count of all assets in dataset
-- **Unused Assets**: Count of assets not referenced
-- **Storage Used**: Total storage consumed by unused assets
-- **Potential Savings**: Storage that would be freed
-- **File Size Distribution**: Breakdown by file size ranges
-- **File Type Analysis**: Usage by MIME type
+- **Total storage** used by image and file assets, with per-type breakdown
+- **Asset counts** (total, images, files)
+- **Per-asset size** and reference count
+- **Duplicate filename groups** for spotting accidental re-uploads
 
-## Performance Tips
+## Performance tips
 
-### Large Datasets
-- Use `batchSize` to control processing speed
-- Apply filters to reduce scan scope
-- Run during off-peak hours for large cleanups
-
-### Incremental Cleanup
-```tsx
-// Clean up assets older than 30 days
-<DeleteUnusedAssets
-  client={client}
-  olderThanDays={30}
-  batchSize={5}
-/>
-```
-
-### Memory Optimization
-```tsx
-// Process smaller batches for memory efficiency
-<DeleteUnusedAssets
-  client={client}
-  batchSize={3}
-  maxFileSize={10485760} // 10MB limit
-/>
-```
+- Use `batchSize` to control how aggressively a run processes.
+- Apply `assetTypes` / `olderThan` / `maxAssets` to reduce scan scope on large datasets.
+- Run large cleanups during off-peak hours.
 
 ## Requirements
 
-- Sanity Studio v3+
-- React 18+
-- @sanity/ui v1+
-- TypeScript 4.5+ (optional)
+This package declares the following peer dependencies:
+
+| Peer | Supported range |
+|------|-----------------|
+| `sanity` | `^3 \|\| ^4 \|\| ^5` |
+| `@sanity/ui` | `^1 \|\| ^2 \|\| ^3` |
+| `@sanity/icons` | `^2 \|\| ^3` |
+| `react` | `^18 \|\| ^19` |
+
+## Regenerating the diagram
+
+The data-flow diagram is generated from a committed [Mermaid](https://mermaid.js.org/) source (`assets/data-flow.mmd`):
+
+```bash
+npm run capture   # renders assets/data-flow.svg via @mermaid-js/mermaid-cli
+```
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License. Licensed under the terms declared in [`package.json`](./package.json) (`"license": "MIT"`).
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to help improve this utility.
+Contributions are welcome. Please open an issue or pull request on the
+[repository](https://github.com/Liiift-Studio/sanity-delete-unused-assets) to help improve this utility.

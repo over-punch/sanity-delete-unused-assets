@@ -1,0 +1,20 @@
+%% Data flow for @liiift-studio/sanity-delete-unused-assets — scan, identify unused, delete.
+%% Source diagram; render with `npm run capture` (mermaid-cli) to assets/data-flow.svg.
+flowchart TD
+    A["Sanity dataset<br/>(image + file assets)"] --> B{"GROQ scan<br/>_type in sanity.imageAsset,<br/>sanity.fileAsset"}
+    B --> C["Reference count per asset<br/>count(*[references(^._id)])"]
+    C --> D{"refs == 0 ?"}
+    D -- "no (referenced)" --> K["Kept — never deleted"]
+    D -- "yes (unused)" --> E["Apply filters<br/>assetTypes · olderThan ·<br/>excludePatterns · maxAssets"]
+    E --> F{"dryRun ?"}
+    F -- "true (preview)" --> G["Report only<br/>onComplete deleted, savedSpace"]
+    F -- "false" --> I["client.transaction()<br/>.delete(id) per asset<br/>.commit() in batches"]
+    I --> J["Permanent deletion<br/>(irreversible)"]
+    J --> G
+
+    classDef danger fill:#3a1414,stroke:#e0533d,color:#ffd9d2;
+    classDef safe fill:#13301f,stroke:#3fa15f,color:#cdeed8;
+    classDef neutral fill:#1d2330,stroke:#5b6b80,color:#dfe6f2;
+    class I,J danger;
+    class K,G safe;
+    class A,B,C,E neutral;
