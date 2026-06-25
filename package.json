@@ -1,6 +1,6 @@
 {
 	"name": "@liiift-studio/sanity-delete-unused-assets",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Asset cleanup utility for Sanity Studio — remove unused assets, analyze storage, and detect duplicates",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
