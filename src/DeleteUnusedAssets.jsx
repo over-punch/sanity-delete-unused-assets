@@ -1,6 +1,6 @@
 // Component for finding and removing unused asset documents from Sanity
-import { Stack, Card, Grid, Heading, Text, Button, Select, Badge, Flex, Box } from '@sanity/ui'
-import { TrashIcon, LockIcon, UnlockIcon, RefreshIcon } from '@sanity/icons'
+import { Stack, Card, Grid, Heading, Text, Button, Select, Badge, Flex, Box } from '@liiift-studio/sanity-ui-compat'
+import { TrashIcon, LockIcon, UnlockIcon, RefreshIcon } from '@liiift-studio/sanity-ui-compat/icons'
 import { useState, useEffect } from 'react'
 import DangerModeWarning, { shouldShowDangerWarning } from './DangerModeWarning'
 

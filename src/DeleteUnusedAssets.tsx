@@ -19,8 +19,8 @@ import {
   Spinner,
   Progress,
   TextInput
-} from '@sanity/ui'
-import { TrashIcon, ImageIcon, DocumentIcon, WarningOutlineIcon, RefreshIcon } from '@sanity/icons'
+} from '@liiift-studio/sanity-ui-compat'
+import { TrashIcon, ImageIcon, DocumentIcon, WarningOutlineIcon, RefreshIcon } from '@liiift-studio/sanity-ui-compat/icons'
 import { SanityClient } from 'sanity'
 
 // Types
