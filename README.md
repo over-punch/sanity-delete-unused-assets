@@ -2,9 +2,9 @@
 
 [![npm version](https://img.shields.io/npm/v/@liiift-studio/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-delete-unused-assets)
 [![license](https://img.shields.io/npm/l/@liiift-studio/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-delete-unused-assets)
-[![Sanity Studio v3+](https://img.shields.io/badge/Sanity%20Studio-v3%20%7C%20v4%20%7C%20v5-f03e2f.svg)](https://www.sanity.io/)
+[![Sanity Studio v3–v6](https://img.shields.io/badge/Sanity%20Studio-v3%20%E2%80%93%20v6-f03e2f.svg)](https://www.sanity.io/)
 
-An asset cleanup utility component for Sanity Studio that identifies and permanently removes **unused** assets (images and files no longer referenced by any document) to reclaim storage. It also reports total storage usage and finds duplicate filenames. Built with `@sanity/ui`.
+An asset cleanup utility component for Sanity Studio that identifies and permanently removes **unused** assets (images and files no longer referenced by any document) to reclaim storage. It also reports total storage usage and finds duplicate filenames. Renders with native Sanity UI components (via a compat layer, so it looks native on Studio v3 through v6).
 
 > ⚠️ **This tool deletes data permanently.** Deleting a Sanity asset is **irreversible** from the Studio. Read the [Safety & irreversibility](#safety--irreversibility) section before running it against a real dataset.
 
@@ -36,7 +36,7 @@ The component runs a single GROQ query for every image/file asset, counts how ma
 - 🧬 **Duplicate detection** — groups assets that share the same original filename
 - 🎯 **Filtering** — narrow the scan by asset type, age, exclude patterns, and a max count
 - 🛡️ **Safety controls** — `dryRun` preview, `excludePatterns`, and batch processing
-- 📱 **Sanity UI** — built with `@sanity/ui`, fits naturally inside a Studio tool or pane
+- 📱 **Native Studio look** — renders with Sanity UI components through a compat layer, so one build fits naturally inside a Studio tool or pane on **v3 through v6**
 
 ## Installation
 
@@ -113,7 +113,7 @@ export default defineConfig({
 | `assetTypes` | `('image' \| 'file')[]` | `['image', 'file']` | Which asset kinds to scan |
 | `olderThan` | `Date` | `undefined` | Only consider assets created before this date |
 | `excludePatterns` | `string[]` | `[]` | Filename substrings to exclude from deletion |
-| `maxAssets` | `number` | `undefined` | Cap on how many assets a single run will act on |
+| `maxAssets` | `number` | `500` | Cap on how many assets a single run will act on |
 | `batchSize` | `number` | `10` | Number of assets processed per batch |
 | `dryRun` | `boolean` | `false` | Preview mode — reports what *would* be deleted without deleting |
 | `onComplete` | `(results: { deleted: number; savedSpace: number; errors: string[] }) => void` | `undefined` | Called when a run finishes |
@@ -169,14 +169,64 @@ The component surfaces storage metrics alongside cleanup:
 
 ## Requirements
 
-This package declares the following peer dependencies:
+This package declares the following peer dependencies — **one build supports Sanity
+Studio v3, v4, v5 and v6**:
 
-| Peer | Supported range |
-|------|-----------------|
-| `sanity` | `^3 \|\| ^4 \|\| ^5` |
-| `@sanity/ui` | `^1 \|\| ^2 \|\| ^3` |
-| `@sanity/icons` | `^2 \|\| ^3` |
-| `react` | `^18 \|\| ^19` |
+| Peer | Declared range | Meaning |
+|------|----------------|---------|
+| `sanity` | `>=3 <7` | Studio v3 through v6 |
+| `@sanity/ui` | `>=2 <5` | v2, v3, v4 — see the note below, `<5` is **not** a mistake |
+| `@sanity/icons` | `>=2 <6` | v2 through v5 |
+| `react` | `^18.0.0 \|\| ^19.0.0` | React 18 or 19 |
+
+> **`@sanity/ui` is capped below v5 on purpose.** Studio v6 ships **`@sanity/ui` v4**,
+> not v5, so `>=2 <5` is the correct range for a v6 Studio. It reads like a bug at a
+> glance; it isn't.
+
+### How one build spans four Studio majors
+
+Two upstream breaking changes make naive imports fail across these majors:
+
+- **`@sanity/ui` v4** moved `Tooltip`, `Menu`, `MenuButton`, `MenuItem`, `Code`,
+  `Popover`, `Autocomplete`, `Toast` and `useToast` out of the package root and into
+  **subpath entries**.
+- **`@sanity/icons` v5** removed **every named `*Icon` export**.
+
+The trap is that **both packages still _declare_ the removed names in their `.d.ts`,
+typed `never`**. A named import therefore type-checks, compiles, and bundles cleanly —
+and then throws at runtime in the Studio. `tsc` and your bundler will both tell you it
+is fine.
+
+So this package **imports no `@sanity/ui` or `@sanity/icons` symbol directly**. Every
+component and icon routes through
+[`@liiift-studio/sanity-ui-compat`](https://www.npmjs.com/package/@liiift-studio/sanity-ui-compat),
+which resolves the *installed* namespace at runtime and picks the right root-or-subpath
+location per major. That indirection — not a version-matrix build — is what makes a
+single artifact work on v3 through v6.
+
+`sanity-ui-compat` is a regular `dependencies` entry and is **bundled into this
+package's `dist`**, so there is nothing extra for you to install.
+
+> **`Progress` is supplied by the compat layer, not by `@sanity/ui`.** This component
+> renders a scan-progress bar via `Progress`, which **has never been exported by
+> `@sanity/ui`** (verified absent from the typings of the installed `@sanity/ui@4.0.5`).
+> `sanity-ui-compat` implements it. If you vendor `src/` rather than consuming `dist`,
+> keep importing `Progress` from the compat package — importing it from `@sanity/ui`
+> will not resolve.
+
+### Verification status
+
+v3–v6 support rests on the declared peer ranges, green builds, and use in **three
+in-house Liiift Studio Studios**. It has **not** been exercised broadly in a running
+Sanity 6 Studio beyond those. Treat v6 as supported-and-believed-good rather than
+extensively field-tested, and please file an issue if you hit a gap.
+
+### TypeScript
+
+The published package **does not declare a `types` field**, so TypeScript consumers get
+no bundled declarations and the import resolves as untyped. `src/` ships in the tarball
+and `src/DeleteUnusedAssets.tsx` carries the real `DeleteUnusedAssetsProps` interface —
+use the [Props](#props) table above as the contract, or declare a local module shim.
 
 ## Regenerating the diagram
 
@@ -186,9 +236,22 @@ The data-flow diagram is generated from a committed [Mermaid](https://mermaid.js
 npm run capture   # renders assets/data-flow.svg via @mermaid-js/mermaid-cli
 ```
 
+## Part of the Liiift Sanity Tools suite
+
+One of a family of Sanity Studio utilities by [Liiift Studio](https://liiift.studio), all
+sharing the same v3–v6 compat approach:
+
+| Package | Does |
+|---|---|
+| [`sanity-search-and-delete`](https://www.npmjs.com/package/@liiift-studio/sanity-search-and-delete) | Find documents and bulk-delete them |
+| [`sanity-duplicate-and-rename`](https://www.npmjs.com/package/@liiift-studio/sanity-duplicate-and-rename) | Bulk-duplicate documents with templated renaming |
+| [`sanity-export-data`](https://www.npmjs.com/package/@liiift-studio/sanity-export-data) | Export document types to CSV or JSON |
+| [`sanity-ui-compat`](https://www.npmjs.com/package/@liiift-studio/sanity-ui-compat) | The compat layer these tools import instead of `@sanity/ui` |
+
 ## License
 
-MIT License. Licensed under the terms declared in [`package.json`](./package.json) (`"license": "MIT"`).
+MIT License. Licensed under the terms declared in [`package.json`](./package.json)
+(`"license": "MIT"`). No standalone `LICENSE` file is checked into the repo yet.
 
 ## Contributing
 
