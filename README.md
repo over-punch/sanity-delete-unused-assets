@@ -14,14 +14,14 @@ The component runs a single GROQ query for every image/file asset, counts how ma
 
 <p align="center">
   <img
-    src="https://raw.githubusercontent.com/Liiift-Studio/sanity-delete-unused-assets/main/assets/data-flow.svg?v=1"
+    src="https://raw.githubusercontent.com/over-punch/sanity-delete-unused-assets/main/assets/data-flow.svg?v=1"
     alt="Data flow: scan every Sanity image/file asset, count references, flag the zero-reference (unused) assets, apply filters, and — only when dryRun is off — permanently delete them via a batched transaction; otherwise report what would be deleted."
     width="420"
   />
 </p>
 
 <!-- PNG fallback (some registry renderers don't display SVG):
-  https://raw.githubusercontent.com/Liiift-Studio/sanity-delete-unused-assets/main/assets/data-flow.png?v=1 -->
+  https://raw.githubusercontent.com/over-punch/sanity-delete-unused-assets/main/assets/data-flow.png?v=1 -->
 
 1. **Asset inventory** — scans all `sanity.imageAsset` and `sanity.fileAsset` documents in your dataset.
 2. **Reference analysis** — for each asset, counts referencing documents with `count(*[references(^._id)])`.
@@ -271,4 +271,4 @@ MIT License. Licensed under the terms declared in [`package.json`](./package.jso
 ## Contributing
 
 Contributions are welcome. Please open an issue or pull request on the
-[repository](https://github.com/Liiift-Studio/sanity-delete-unused-assets) to help improve this utility.
+[repository](https://github.com/over-punch/sanity-delete-unused-assets) to help improve this utility.

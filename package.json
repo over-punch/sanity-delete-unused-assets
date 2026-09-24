@@ -30,12 +30,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Liiift-Studio/sanity-delete-unused-assets.git"
+    "url": "https://github.com/over-punch/sanity-delete-unused-assets.git"
   },
   "bugs": {
-    "url": "https://github.com/Liiift-Studio/sanity-delete-unused-assets/issues"
+    "url": "https://github.com/over-punch/sanity-delete-unused-assets/issues"
   },
-  "homepage": "https://github.com/Liiift-Studio/sanity-delete-unused-assets#readme",
+  "homepage": "https://github.com/over-punch/sanity-delete-unused-assets#readme",
   "peerDependencies": {
     "@sanity/icons": ">=2 <6",
     "@sanity/ui": ">=2 <5",
