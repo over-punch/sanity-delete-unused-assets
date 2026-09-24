@@ -1,7 +1,7 @@
 # Sanity Delete Unused Assets
 
-[![npm version](https://img.shields.io/npm/v/@liiift-studio/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-delete-unused-assets)
-[![license](https://img.shields.io/npm/l/@liiift-studio/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@liiift-studio/sanity-delete-unused-assets)
+[![npm version](https://img.shields.io/npm/v/@overpunch/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@overpunch/sanity-delete-unused-assets)
+[![license](https://img.shields.io/npm/l/@overpunch/sanity-delete-unused-assets.svg)](https://www.npmjs.com/package/@overpunch/sanity-delete-unused-assets)
 [![Sanity Studio v3–v6](https://img.shields.io/badge/Sanity%20Studio-v3%20%E2%80%93%20v6-f03e2f.svg)](https://www.sanity.io/)
 
 An asset cleanup utility component for Sanity Studio that identifies and permanently removes **unused** assets (images and files no longer referenced by any document) to reclaim storage. It also reports total storage usage and finds duplicate filenames. Renders with native Sanity UI components (via a compat layer, so it looks native on Studio v3 through v6).
@@ -41,7 +41,7 @@ The component runs a single GROQ query for every image/file asset, counts how ma
 ## Installation
 
 ```bash
-npm install @liiift-studio/sanity-delete-unused-assets
+npm install @overpunch/sanity-delete-unused-assets
 ```
 
 ## Quick Start
@@ -50,7 +50,7 @@ The package's default export is a React component. Render it inside a Studio too
 
 ```tsx
 import React from 'react'
-import { DeleteUnusedAssets } from '@liiift-studio/sanity-delete-unused-assets'
+import { DeleteUnusedAssets } from '@overpunch/sanity-delete-unused-assets'
 import { useClient } from 'sanity'
 
 const AssetCleanup = () => {
@@ -69,14 +69,14 @@ const AssetCleanup = () => {
 ```
 
 > The component is also available as the package's **default** export, so
-> `import DeleteUnusedAssets from '@liiift-studio/sanity-delete-unused-assets'` works too.
+> `import DeleteUnusedAssets from '@overpunch/sanity-delete-unused-assets'` works too.
 
 This package ships a component, not a Studio plugin — there is no auto-registering
 tool. Mount the component yourself, for example as a custom tool in `sanity.config.ts`:
 
 ```tsx
 import { defineConfig, useClient } from 'sanity'
-import { DeleteUnusedAssets } from '@liiift-studio/sanity-delete-unused-assets'
+import { DeleteUnusedAssets } from '@overpunch/sanity-delete-unused-assets'
 
 const AssetCleanupTool = () => {
   const client = useClient({ apiVersion: '2023-01-01' })
@@ -214,7 +214,7 @@ and is `undefined` at runtime.
 
 So this package **imports no `@sanity/ui` or `@sanity/icons` symbol directly**. Every
 component and icon routes through
-[`@liiift-studio/sanity-ui-compat`](https://www.npmjs.com/package/@liiift-studio/sanity-ui-compat),
+[`@overpunch/sanity-ui-compat`](https://www.npmjs.com/package/@overpunch/sanity-ui-compat),
 which resolves the *installed* namespace at runtime and picks the right root-or-subpath
 location per major. That indirection — not a version-matrix build — is what makes a
 single artifact work on v3 through v6.
@@ -258,10 +258,10 @@ sharing the same v3–v6 compat approach:
 
 | Package | Does |
 |---|---|
-| [`sanity-search-and-delete`](https://www.npmjs.com/package/@liiift-studio/sanity-search-and-delete) | Find documents and bulk-delete them |
-| [`sanity-duplicate-and-rename`](https://www.npmjs.com/package/@liiift-studio/sanity-duplicate-and-rename) | Bulk-duplicate documents with templated renaming |
-| [`sanity-export-data`](https://www.npmjs.com/package/@liiift-studio/sanity-export-data) | Export document types to CSV or JSON |
-| [`sanity-ui-compat`](https://www.npmjs.com/package/@liiift-studio/sanity-ui-compat) | The compat layer these tools import instead of `@sanity/ui` |
+| [`sanity-search-and-delete`](https://www.npmjs.com/package/@overpunch/sanity-search-and-delete) | Find documents and bulk-delete them |
+| [`sanity-duplicate-and-rename`](https://www.npmjs.com/package/@overpunch/sanity-duplicate-and-rename) | Bulk-duplicate documents with templated renaming |
+| [`sanity-export-data`](https://www.npmjs.com/package/@overpunch/sanity-export-data) | Export document types to CSV or JSON |
+| [`sanity-ui-compat`](https://www.npmjs.com/package/@overpunch/sanity-ui-compat) | The compat layer these tools import instead of `@sanity/ui` |
 
 ## License
 
