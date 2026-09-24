@@ -1,5 +1,5 @@
 {
-  "name": "@liiift-studio/sanity-delete-unused-assets",
+  "name": "@overpunch/sanity-delete-unused-assets",
   "version": "2.0.2",
   "description": "Asset cleanup utility for Sanity Studio — remove unused assets, analyze storage, and detect duplicates",
   "main": "dist/index.js",
@@ -51,6 +51,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@liiift-studio/sanity-ui-compat": "^0.1.0"
+    "@overpunch/sanity-ui-compat": "^0.1.0"
   }
 }
