@@ -253,7 +253,7 @@ npm run capture   # renders assets/data-flow.svg via @mermaid-js/mermaid-cli
 
 ## Part of the Liiift Sanity Tools suite
 
-One of a family of Sanity Studio utilities by [Liiift Studio](https://liiift.studio), all
+One of a family of Sanity Studio utilities by [Liiift Studio](https://overpunch.ca), all
 sharing the same v3–v6 compat approach:
 
 | Package | Does |
